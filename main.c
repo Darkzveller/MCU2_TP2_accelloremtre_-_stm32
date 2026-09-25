@@ -386,6 +386,39 @@ void Serial_Print(const char *format, ...)
 	/* Envoi sur USART2 */
 	Serial_WriteString(buffer);
 }
+/*
+ * Equivalent de Serial.println()
+ *
+ * Ajoute automatiquement :
+ *
+ * \r = retour au début de la ligne
+ * \n = passage à la ligne suivante
+ */
+void Serial_Println(const char *format, ...)
+{
+    char buffer[128];
+
+    va_list args;
+
+    va_start(args, format);
+
+    vsnprintf(buffer, sizeof(buffer), format, args);
+
+    va_end(args);
+
+    Serial_WriteString(buffer);
+
+    /*
+     * Retour au début de la ligne
+     */
+    Serial_WriteChar('\r');
+
+    /*
+     * Passage à la ligne suivante
+     */
+    Serial_WriteChar('\n');
+}
+
 void config_SPI_1(void)
 {
 	RCC->APB2ENR |= (1 << 12); // horloge SPI1
@@ -542,11 +575,14 @@ int main(void)
 	config_SPI_1();
 	config_ADXL();
 	// GPIO_InitPin(GPIOA, 5, GPIO_OUTPUT_PP_50MHZ, GPIO_LOW);
-	Serial_Print("Demarrage du STM32\r\n");
+	Serial_Print("Demarrage du STM32");
+	Serial_Println("");
 
 	int valeur = 42;
 
-	Serial_Print("Valeur = %d\r\n", valeur);
+	Serial_Print("Valeur = %d", valeur);
+	Serial_Println("");
+
 
 	while (1)
 	{
