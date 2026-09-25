@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\Objects\projet_keil_neuf.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\projet_keil_neuf.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6140002: Last Updated: Fri Sep 25 21:13:57 2026
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 6140002: Last Updated: Fri Sep 25 21:39:08 2026
 <BR><P>
 <H3>Maximum Stack Usage =        324 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -936,8 +936,8 @@ Global Symbols
 <P><STRONG><a name="[d9]"></a>__user_perthread_libspace</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, libspace.o(.text), UNUSED)
 
 <P><STRONG><a name="[a9]"></a>strcmp</STRONG> (Thumb, 128 bytes, Stack size 0 bytes, strcmpv7m.o(.text))
-<BR><BR>[Called By]<UL><LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_get_lc_ctype
-<LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_get_lc_numeric
+<BR><BR>[Called By]<UL><LI><a href="#[64]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_get_lc_numeric
+<LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_get_lc_ctype
 </UL>
 
 <P><STRONG><a name="[6f]"></a>_sys_exit</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, sys_exit.o(.text))
@@ -1068,7 +1068,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[6a]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[6a]"></a>main</STRONG> (Thumb, 288 bytes, Stack size 40 bytes, main.o(.text.main))
+<P><STRONG><a name="[6a]"></a>main</STRONG> (Thumb, 476 bytes, Stack size 40 bytes, main.o(.text.main))
 <BR><BR>[Stack]<UL><LI>Max Depth = 320 + Unknown Stack Size
 <LI>Call Chain = main &rArr; Serial_Println &rArr; vsnprintf &rArr; _printf_char_common &rArr; __printf
 </UL>

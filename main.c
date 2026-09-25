@@ -580,7 +580,7 @@ typedef struct
 	uint8_t available_space; // Nombre de places libres
 
 } t_fifo;
-t_fifo fifo_tx = {0, 0, 0, SIZE_FIFO};
+t_fifo fifo_tx = {{0}, 0, 0, SIZE_FIFO};
 
 int main(void)
 {
@@ -599,13 +599,20 @@ int main(void)
 	uint8_t data[SIZE_FIFO] = {0};
 	while (1)
 	{
-		if (GPIO_ReadPin(GPIOA, 11))
+		Serial_Print("--------------------- LECTURE PIN ---------------------\r\n");
+
+		Serial_Print("Wartermark = %1d  overrun = %1d", GPIO_ReadPin(GPIOA, 10), GPIO_ReadPin(GPIOA, 11));
+		Serial_Println("");
+
+		if (GPIO_ReadPin(GPIOA, 10))
 		{
 			uint8_t fifo_status;
 			uint8_t nb_mesures;
 
 			lire_regADXL(ADXL345_FIFO_STATUS, &fifo_status);
 			nb_mesures = fifo_status & 0x3F;
+			Serial_Print("--------------------- LECTURE AXE ---------------------\r\n");
+
 			for (uint8_t i = 0; i < nb_mesures; i++)
 			{
 				lire_multiple_regADXL(ADXL345_DATAX0, 6, data);
@@ -613,12 +620,12 @@ int main(void)
 				int16_t axe_x = (int16_t)(((uint16_t)data[1] << 8) | data[0]);
 				int16_t axe_y = (int16_t)(((uint16_t)data[3] << 8) | data[2]);
 				int16_t axe_z = (int16_t)(((uint16_t)data[5] << 8) | data[4]);
-				 axe_x = ADXL_ConvertTo_ms2(axe_x, 4);
-				 axe_y = ADXL_ConvertTo_ms2(axe_y, 4);
-				 axe_z = ADXL_ConvertTo_ms2(axe_z, 4);
-				// Serial_Print("axe x %4d m/s2 | axe y %4d m/s2 | axe z %4d m/s2 ", axe_x, axe_y, axe_z);
-				// Serial_Print(" | nbr mesure %3d  ", nb_mesures);
-				Serial_Print("%4d %4d %4d %4d", axe_x, axe_y, axe_z,nb_mesures);
+				axe_x = ADXL_ConvertTo_ms2(axe_x, 4);
+				axe_y = ADXL_ConvertTo_ms2(axe_y, 4);
+				axe_z = ADXL_ConvertTo_ms2(axe_z, 4);
+				Serial_Print("axe x %4d m/s2 | axe y %4d m/s2 | axe z %4d m/s2 ", axe_x, axe_y, axe_z);
+				Serial_Print(" | nbr mesure %3d  ", nb_mesures);
+				// Serial_Print("%4d %4d %4d %4d", axe_x, axe_y, axe_z, nb_mesures);
 
 				Serial_Println("");
 			}
