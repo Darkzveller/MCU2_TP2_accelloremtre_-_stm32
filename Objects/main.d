@@ -9,4 +9,6 @@
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\arm_compat.h \
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\arm_acle.h \
   C:\Users\elkat\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\Include\system_stm32f10x.h \
-  ADXL345.h C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdbool.h
+  ADXL345.h C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdbool.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdarg.h
