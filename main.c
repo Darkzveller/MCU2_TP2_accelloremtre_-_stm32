@@ -168,171 +168,163 @@ void delay_ms(uint32_t ms)
 	SysTick->CTRL = 0U;
 }
 
-
-
 void config_usart2(uint32_t cpu_freq_hz, uint32_t baudrate)
 {
-    uint32_t pclk1_freq;
-    uint32_t ppre1;
-    uint32_t apb1_div;
-    uint32_t usartdiv_x16;
-    uint32_t mantissa;
-    uint32_t fraction;
+	uint32_t pclk1_freq;
+	uint32_t ppre1;
+	uint32_t apb1_div;
+	uint32_t usartdiv_x16;
+	uint32_t mantissa;
+	uint32_t fraction;
 
-    /* =========================================================
-     * 1. CONFIGURATION DES ENTREES / SORTIES DE L'USART2
-     * ========================================================= */
+	/* =========================================================
+	 * 1. CONFIGURATION DES ENTREES / SORTIES DE L'USART2
+	 * ========================================================= */
 
-    /* Activation horloge GPIOA */
-    RCC->APB2ENR |= (1U << 2);
+	/* Activation horloge GPIOA */
+	RCC->APB2ENR |= (1U << 2);
 
-    /*
-     * USART2 :
-     * PA2 = TX
-     * PA3 = RX
-     *
-     * PA2 :
-     * MODE2 = 01 -> sortie 10 MHz
-     * CNF2  = 10 -> Alternate Function Push-Pull
-     *
-     * PA3 :
-     * MODE3 = 00 -> entrée
-     * CNF3  = 01 -> entrée flottante
-     */
+	/*
+	 * USART2 :
+	 * PA2 = TX
+	 * PA3 = RX
+	 *
+	 * PA2 :
+	 * MODE2 = 01 -> sortie 10 MHz
+	 * CNF2  = 10 -> Alternate Function Push-Pull
+	 *
+	 * PA3 :
+	 * MODE3 = 00 -> entrée
+	 * CNF3  = 01 -> entrée flottante
+	 */
 
-    GPIOA->CRL &= ~(0xFFU << 8);
-    GPIOA->CRL |=  (0x49U << 8);
+	GPIOA->CRL &= ~(0xFFU << 8);
+	GPIOA->CRL |= (0x49U << 8);
 
+	/* =========================================================
+	 * 2. ACTIVATION HORLOGE USART2
+	 * ========================================================= */
 
-    /* =========================================================
-     * 2. ACTIVATION HORLOGE USART2
-     * ========================================================= */
+	RCC->APB1ENR |= (1U << 17);
 
-    RCC->APB1ENR |= (1U << 17);
+	/* =========================================================
+	 * 3. DETERMINATION DE LA FREQUENCE APB1
+	 * ========================================================= */
 
+	/*
+	 * USART2 est connecté au bus APB1.
+	 *
+	 * On récupère PPRE1 = bits [10:8] de RCC_CFGR.
+	 */
 
-    /* =========================================================
-     * 3. DETERMINATION DE LA FREQUENCE APB1
-     * ========================================================= */
+	ppre1 = (RCC->CFGR >> 8) & 0x7U;
 
-    /*
-     * USART2 est connecté au bus APB1.
-     *
-     * On récupère PPRE1 = bits [10:8] de RCC_CFGR.
-     */
+	/*
+	 * PPRE1 :
+	 *
+	 * 0xx = HCLK / 1
+	 * 100 = HCLK / 2
+	 * 101 = HCLK / 4
+	 * 110 = HCLK / 8
+	 * 111 = HCLK / 16
+	 */
 
-    ppre1 = (RCC->CFGR >> 8) & 0x7U;
+	if (ppre1 < 4U)
+	{
+		apb1_div = 1U;
+	}
+	else
+	{
+		apb1_div = 1U << (ppre1 - 3U);
+	}
 
-    /*
-     * PPRE1 :
-     *
-     * 0xx = HCLK / 1
-     * 100 = HCLK / 2
-     * 101 = HCLK / 4
-     * 110 = HCLK / 8
-     * 111 = HCLK / 16
-     */
+	/*
+	 * Fréquence réellement reçue par USART2
+	 */
+	pclk1_freq = cpu_freq_hz / apb1_div;
 
-    if (ppre1 < 4U)
-    {
-        apb1_div = 1U;
-    }
-    else
-    {
-        apb1_div = 1U << (ppre1 - 3U);
-    }
+	/* =========================================================
+	 * 4. CALCUL AUTOMATIQUE DU BAUDRATE
+	 * ========================================================= */
 
-    /*
-     * Fréquence réellement reçue par USART2
-     */
-    pclk1_freq = cpu_freq_hz / apb1_div;
+	/*
+	 * USARTDIV = PCLK1 / (16 * Baudrate)
+	 *
+	 * Mais comme BRR contient directement :
+	 *
+	 * Mantisse * 16 + Fraction
+	 *
+	 * on peut calculer :
+	 *
+	 * USARTDIV_x16 = PCLK1 / Baudrate
+	 *
+	 * Le + baudrate/2 permet d'arrondir au plus proche.
+	 */
 
+	usartdiv_x16 = (pclk1_freq + (baudrate / 2U)) / baudrate;
 
-    /* =========================================================
-     * 4. CALCUL AUTOMATIQUE DU BAUDRATE
-     * ========================================================= */
+	/*
+	 * Partie entière
+	 */
+	mantissa = usartdiv_x16 / 16U;
 
-    /*
-     * USARTDIV = PCLK1 / (16 * Baudrate)
-     *
-     * Mais comme BRR contient directement :
-     *
-     * Mantisse * 16 + Fraction
-     *
-     * on peut calculer :
-     *
-     * USARTDIV_x16 = PCLK1 / Baudrate
-     *
-     * Le + baudrate/2 permet d'arrondir au plus proche.
-     */
+	/*
+	 * Partie fractionnaire
+	 */
+	fraction = usartdiv_x16 % 16U;
 
-    usartdiv_x16 = (pclk1_freq + (baudrate / 2U)) / baudrate;
+	/*
+	 * BRR :
+	 *
+	 * [15:4] = mantisse
+	 * [3:0]  = fraction
+	 */
+	USART2->BRR = (mantissa << 4) | fraction;
 
-    /*
-     * Partie entière
-     */
-    mantissa = usartdiv_x16 / 16U;
+	/* ---------------------------------------------------------
+	 * USART_CR2
+	 * 1 bit de stop
+	 * ---------------------------------------------------------
+	 *
+	 * STOP[1:0] = bits [13:12]
+	 * 00 = 1 bit de stop
+	 */
 
-    /*
-     * Partie fractionnaire
-     */
-    fraction = usartdiv_x16 % 16U;
+	USART2->CR2 &= ~(0x3U << 12);
 
-    /*
-     * BRR :
-     *
-     * [15:4] = mantisse
-     * [3:0]  = fraction
-     */
-    USART2->BRR = (mantissa << 4) | fraction;
+	/* ---------------------------------------------------------
+	 * USART_CR3
+	 * Pas de contrôle de flux matériel RTS / CTS
+	 * ---------------------------------------------------------
+	 *
+	 * CTSE = bit 9 = 0
+	 * RTSE = bit 8 = 0
+	 */
 
+	USART2->CR3 &= ~((1U << 9) |
+					 (1U << 8));
 
-    /* ---------------------------------------------------------
-     * USART_CR2
-     * 1 bit de stop
-     * ---------------------------------------------------------
-     *
-     * STOP[1:0] = bits [13:12]
-     * 00 = 1 bit de stop
-     */
+	/* ---------------------------------------------------------
+	 * USART_CR1
+	 * ---------------------------------------------------------
+	 *
+	 * UE  = 1 -> bit 13 : USART activé
+	 * M   = 0 -> bit 12 : mot de 8 bits
+	 * PCE = 0 -> bit 10 : pas de parité
+	 * TE  = 1 -> bit 3  : transmission activée
+	 * RE  = 1 -> bit 2  : réception activée
+	 */
 
-    USART2->CR2 &= ~(0x3U << 12);
+	/* On efface d'abord tous les champs que l'on veut configurer */
+	USART2->CR1 &= ~((1U << 13) |
+					 (1U << 12) |
+					 (1U << 10) |
+					 (1U << 3) |
+					 (1U << 2));
 
-
-    /* ---------------------------------------------------------
-     * USART_CR3
-     * Pas de contrôle de flux matériel RTS / CTS
-     * ---------------------------------------------------------
-     *
-     * CTSE = bit 9 = 0
-     * RTSE = bit 8 = 0
-     */
-
-    USART2->CR3 &= ~((1U << 9) |
-                     (1U << 8));
-
-
-    /* ---------------------------------------------------------
-     * USART_CR1
-     * ---------------------------------------------------------
-     *
-     * UE  = 1 -> bit 13 : USART activé
-     * M   = 0 -> bit 12 : mot de 8 bits
-     * PCE = 0 -> bit 10 : pas de parité
-     * TE  = 1 -> bit 3  : transmission activée
-     * RE  = 1 -> bit 2  : réception activée
-     */
-
-    /* On efface d'abord tous les champs que l'on veut configurer */
-    USART2->CR1 &= ~((1U << 13) |
-                     (1U << 12) |
-                     (1U << 10) |
-                     (1U << 3)  |
-                     (1U << 2));
-
-    USART2->CR1 |= ((1U << 13) |
-                    (1U << 3)  |
-                    (1U << 2));
+	USART2->CR1 |= ((1U << 13) |
+					(1U << 3) |
+					(1U << 2));
 }
 /*
  * Envoie un caractère sur USART2
@@ -396,27 +388,27 @@ void Serial_Print(const char *format, ...)
  */
 void Serial_Println(const char *format, ...)
 {
-    char buffer[128];
+	char buffer[128];
 
-    va_list args;
+	va_list args;
 
-    va_start(args, format);
+	va_start(args, format);
 
-    vsnprintf(buffer, sizeof(buffer), format, args);
+	vsnprintf(buffer, sizeof(buffer), format, args);
 
-    va_end(args);
+	va_end(args);
 
-    Serial_WriteString(buffer);
+	Serial_WriteString(buffer);
 
-    /*
-     * Retour au début de la ligne
-     */
-    Serial_WriteChar('\r');
+	/*
+	 * Retour au début de la ligne
+	 */
+	Serial_WriteChar('\r');
 
-    /*
-     * Passage à la ligne suivante
-     */
-    Serial_WriteChar('\n');
+	/*
+	 * Passage à la ligne suivante
+	 */
+	Serial_WriteChar('\n');
 }
 
 void config_SPI_1(void)
@@ -557,7 +549,29 @@ void config_ADXL(void)
 	config_regADXL(ADXL345_BW_RATE, 0b00001010);  // Fonctionnement � 100 HZ
 	config_regADXL(ADXL345_FIFO_CTL, 0b10010000); // stream, trig int1, avertissement sur mi remplissage (16)
 }
+float ADXL_ConvertTo_ms2(int16_t value_to_convert, float mg_per_lsb)
+{
+	const float GRAVITY = 9.80665f;
 
+	float acceleration_g;
+
+	/*
+	 * value_to_convert     : valeur brute provenant de l'ADXL345
+	 * mg_per_lsb    : sensibilité du capteur, par exemple 4 mg/LSB
+	 *
+	 * On commence par convertir les mg en g :
+	 *
+	 * 1000 mg = 1 g
+	 */
+	acceleration_g = value_to_convert * mg_per_lsb / 1000.0f;
+
+	/*
+	 * Puis on convertit les g en m/s² :
+	 *
+	 * 1 g = 9.80665 m/s²
+	 */
+	return acceleration_g * GRAVITY;
+}
 typedef struct
 {
 	uint8_t data[SIZE_FIFO]; // bah la data
@@ -570,7 +584,6 @@ t_fifo fifo_tx = {0, 0, 0, SIZE_FIFO};
 
 int main(void)
 {
-	// config_usart2();
 	config_usart2(72000000U, 9600);
 	config_SPI_1();
 	config_ADXL();
@@ -583,10 +596,10 @@ int main(void)
 	Serial_Print("Valeur = %d", valeur);
 	Serial_Println("");
 
-
+	uint8_t data[SIZE_FIFO] = {0};
 	while (1)
 	{
-		if (GPIO_ReadPin(GPIOA, 12))
+		if (GPIO_ReadPin(GPIOA, 11))
 		{
 			uint8_t fifo_status;
 			uint8_t nb_mesures;
@@ -595,11 +608,19 @@ int main(void)
 			nb_mesures = fifo_status & 0x3F;
 			for (uint8_t i = 0; i < nb_mesures; i++)
 			{
-				// lire_multiple_regADXL(ADXL345_DATAX0, 6, data);
+				lire_multiple_regADXL(ADXL345_DATAX0, 6, data);
 
-				// uint16_t axe_x = (int16_t)((data[1] << 8) | data[0]);
-				// uint16_t axe_y = (int16_t)((data[3] << 8) | data[2]);
-				// uint16_t axe_z = (int16_t)((data[5] << 8) | data[4]);
+				int16_t axe_x = (int16_t)(((uint16_t)data[1] << 8) | data[0]);
+				int16_t axe_y = (int16_t)(((uint16_t)data[3] << 8) | data[2]);
+				int16_t axe_z = (int16_t)(((uint16_t)data[5] << 8) | data[4]);
+				 axe_x = ADXL_ConvertTo_ms2(axe_x, 4);
+				 axe_y = ADXL_ConvertTo_ms2(axe_y, 4);
+				 axe_z = ADXL_ConvertTo_ms2(axe_z, 4);
+				// Serial_Print("axe x %4d m/s2 | axe y %4d m/s2 | axe z %4d m/s2 ", axe_x, axe_y, axe_z);
+				// Serial_Print(" | nbr mesure %3d  ", nb_mesures);
+				Serial_Print("%4d %4d %4d %4d", axe_x, axe_y, axe_z,nb_mesures);
+
+				Serial_Println("");
 			}
 		}
 		else
